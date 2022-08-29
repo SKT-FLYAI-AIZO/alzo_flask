@@ -1,11 +1,11 @@
 from flask import request,Flask, Response, json, jsonify, make_response
-#import cv2
+import cv2
 import os
-#import time
-#import numpy as np
-#import tensorflow as tf
-#from tensorflow import keras
-#from keras.models import load_model 
+import time
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from keras.models import load_model 
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, __version__
 
 
@@ -20,108 +20,177 @@ azure_info = {'account_name' : 'aizost',
 
 wieght_path = "./weights/weights.h5"
 
-# fps = 30
-# sec = 3
+violation = {
+    0: 'NORMAL',
+    1: 'VIOLATION'
+}
 
-# color_list = [(0, 255, 0), (0, 0, 255)]    # 정상: 초록, 위반: 빨강
+fps = 30
+sec = 4
 
-# mk_file_list = []
+color_list = [(0, 255, 0), (0, 0, 255)]    # 정상: 초록, 위반: 빨강
 
-# def save_shorts(video_path, shorts_unique):
-#     cap = cv2.VideoCapture(video_path)
-#     fps = cap.get(cv2.CAP_PROP_FPS)
-#     w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-#     h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-#     c = 3    
+def save_shorts(video_path, shorts_unique, start_time):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    c = 3    
 
-#     segRange = [(shorts_idx[0], shorts_idx[0] + fps*sec*2) for shorts_idx in shorts_unique]
-#     fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    segRange = [(shorts_idx[0], shorts_idx[0] + fps*sec*2) for shorts_idx in shorts_unique]
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
-#     for idx,(begFidx,endFidx) in enumerate(segRange):
-#         writer = cv2.VideoWriter(f'./media/violation_shorts2_{idx}.mp4',fourcc,fps,(w, h))
-#         mk_file_list.append(f'violation_shorts2_{idx}.mp4')
-#         cap.set(cv2.CAP_PROP_POS_FRAMES,begFidx)
-#         ret = True # has frame returned
-#         while(cap.isOpened() and ret and writer.isOpened()):
-#             ret, frame = cap.read()
-#             frame_number = cap.get(cv2.CAP_PROP_POS_FRAMES) - 1
-#             if frame_number < endFidx:
-#                 writer.write(frame)
-#             else:
-#                 break
-#         writer.release()
+    for idx,(begFidx,endFidx) in enumerate(segRange):
+        writer = cv2.VideoWriter(f'./temp/{bolb_name}{idx}.mp4',fourcc,fps,(w, h))
+        cap.set(cv2.CAP_PROP_POS_FRAMES,begFidx)
+        ret = True # has frame returned
+        while(cap.isOpened() and ret and writer.isOpened()):
+            ret, frame = cap.read()
+            frame_number = cap.get(cv2.CAP_PROP_POS_FRAMES) - 1
+            time_ = start_time + np.timedelta64(int(1000 * frame_number / fps), 'ms')
+            cv2.putText(frame, str(time_)[:-3], org=(10, 80), fontFace=1, fontScale=5, color=(0, 0, 0), thickness=4)
 
-
-
-
-# def shorts_intersect(shorts_idx):
-#     shorts_unique = [shorts_idx[0]]
-#     for i in range(1, len(shorts_idx)):
-#         intersect = np.intersect1d(shorts_unique[-1], shorts_idx[i])
-#         if len(intersect) >= 10:
-#             continue
-#         else:
-#             shorts_unique.append(shorts_idx[i])
-
-#     return shorts_unique
+            if frame_number < endFidx:
+                writer.write(frame)
+            else:
+                break
+        writer.release()
 
 
-# def get_shorts(pred_lst):
+def shorts_intersect(shorts_idx):
+    shorts_unique = [shorts_idx[0]]
+    for i in range(1, len(shorts_idx)):
+        intersect = np.intersect1d(shorts_unique[-1], shorts_idx[i])
+        if len(intersect) >= 1:
+            continue
+        else:
+            shorts_unique.append(shorts_idx[i])
 
-#     shorts_len = fps * sec
-#     # print(1)
-#     shorts_idx = []
-#     for idx in range(len(pred_lst) - shorts_len):
-#         # print(2)
-#         shorts = pred_lst[idx:idx+shorts_len]
-#         if shorts.count(1) >= 45:
-#             shorts_idx.append(range(idx, idx+shorts_len))
-#     # print(3)
-#     if len(shorts_idx):
-#         shorts_unique = shorts_intersect(shorts_idx)
-#         print(shorts_unique)
-#         return shorts_unique
-#     else:
-#         return None
+    return shorts_unique
 
+def get_shorts(pred_lst):
 
-# def video_show(video_path, model):
-#     cap = cv2.VideoCapture(video_path)
-#     fps = cap.get(cv2.CAP_PROP_FPS) # 1초당 사용되는 이미지의 수
-#     w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) #
-#     h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # 
-#     c = 3
-#     total_sec = 2
-#     total_len = int(total_sec * fps)
-#     pred_lst = []
-
-#     while True:
-#         ret, frame = cap.read()
-
-#         if ret:
-#             y_pred = predict_violation(frame, model)
-#             pred_lst.append(y_pred)
+    shorts_len = fps * sec
+    shorts_idx = []
+    with open('./incheon/incheon.txt', 'w') as f:
+        for idx in range(len(pred_lst) - shorts_len):
+            shorts = pred_lst[idx:idx+shorts_len].tolist()
+            
+            f.write(f'{shorts.count(1)}\n')
+            if shorts.count(1) >= 45:
+                shorts_idx.append(range(idx, idx+shorts_len*2))
+        f.close()
         
-#         else:
-#             break
+        if len(shorts_idx):
+            shorts_unique = shorts_intersect(shorts_idx)
+            print(shorts_unique)
+            return shorts_unique
+        else:
+            return None
 
-#         #cv2.putText(frame, violation[y_pred], org=(10, 80), fontFace=1, fontScale=5*(y_pred+1), color=color_list[y_pred], thickness=4)
-#         #cv2.imshow("frame", frame)
-#         #cv2.waitKey(1)
-
-
-#     return pred_lst
-
-# def predict_violation(frame, model):
-#     img = frame.copy()
-#     img = cv2.resize(img, (512, 512))
-#     img = img.astype(np.float32)
-#     img /= 255.
-#     img = np.expand_dims(img, axis=0)
-
-#     y_pred = model.predict(img, verbose=0)
+"""def video_show_test(video_path, model):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    c = 3
     
-#     return np.argmax(y_pred)      # 0: normal, 1: violation
+    pred_lst = []
+    batch = np.empty((1, 512, 512, 3))
+    batch_size = 8
+    tmp = 0
+    start = time.time()
+    while True:
+        ret, frame = cap.read()
+        
+        if ret:
+            if tmp % 3 == 0:
+                img = frame.copy()
+                img = cv2.resize(img, (512, 512))
+                img = img.astype(np.float32)
+                img /= 255.
+                img = np.expand_dims(img, axis=0)
+                if tmp:
+                    if (tmp % batch_size) != 0:
+                        batch = np.concatenate((batch, img), axis=0)
+                    else:
+                        batch = np.concatenate((batch, img), axis=0)
+                        y_pred = model.predict(batch[1:], verbose=0)
+                        batch = np.empty((1, 512, 512, 3))
+                        gc.collect()
+                    #y_pred = predict_violation(frame, model)
+                        pred_lst.append(np.argmax(y_pred, axis=1))
+                tmp += 1
+            else:
+                tmp += 1
+                continue
+            
+        else:
+            break
+    print(f'time: {time.time() - start}')
+        #cv2.putText(frame, violation[y_pred], org=(10, 80), fontFace=1, fontScale=5*(y_pred+1), color=color_list[y_pred], thickness=4)
+        #cv2.imshow("frame", frame)
+        #cv2.waitKey(1)
+    pred_lst = np.reshape(pred_lst, (-1, ))
+    return pred_lst"""
+
+def video_show(video_path, model):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    c = 3
+    
+    pred_lst = []
+    tmp = 0
+    batch = np.empty((1, 512, 512, 3))
+    batch_size = 8
+
+    while True:
+        ret, frame = cap.read()
+        if ret:
+            img = frame.copy()
+            img = cv2.resize(img, (512, 512))
+            img = img.astype(np.float32)
+            img /= 255.
+            img = np.expand_dims(img, axis=0)
+            if tmp:
+                if (tmp % batch_size) != 0:
+                    batch = np.concatenate((batch, img), axis=0)
+                else:
+                    batch = np.concatenate((batch, img), axis=0)
+                    y_pred = model.predict(batch[1:], verbose=0)
+                    batch = np.empty((1, 512, 512, 3))
+                    gc.collect()
+                #y_pred = predict_violation(frame, model)
+                    pred_lst.append(np.argmax(y_pred, axis=1))
+                tmp += 1
+
+            else:
+                tmp += 1
+                continue
+            
+        else:
+            break
+
+        #cv2.putText(frame, violation[y_pred], org=(10, 80), fontFace=1, fontScale=5*(y_pred+1), color=color_list[y_pred], thickness=4)
+        #cv2.imshow("frame", frame)
+        #cv2.waitKey(1)
+    pred_lst = np.reshape(pred_lst, (-1, ))
+
+    return pred_lst
+
+def predict_violation(frame, model):
+    img = frame.copy()
+    img = cv2.resize(img, (512, 512))
+    img = img.astype(np.float32)
+    img /= 255.
+    img = np.expand_dims(img, axis=0)
+
+    y_pred = model.predict(img, verbose=0)
+    
+    return np.argmax(y_pred)      # 0: normal, 1: violation
+
 
 
 @app.route('/play/yummy',methods=['POST'])
