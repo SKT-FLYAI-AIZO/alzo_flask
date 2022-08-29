@@ -16,7 +16,8 @@ from datetime import date, datetime
 app = Flask(__name__)
 
 model_path = "./weights/weights.h5"
-
+model = load_model(model_path)
+    
 fps = 30
 sec = 4
 
@@ -31,8 +32,8 @@ def save_shorts(video_path, shorts_unique, start_time,upload_path):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     mk_file = []
     for idx,(begFidx,endFidx) in enumerate(segRange):
-        writer = cv2.VideoWriter(f'{upload_path}{idx}.mp4',fourcc,fps,(w, h))
-        mk_file.append(f'{upload_path}{idx}.mp4')
+        writer = cv2.VideoWriter(f'{upload_path[:-4]}_{idx}.mp4',fourcc,fps,(w, h))
+        mk_file.append(f'{upload_path[:-4]}_{idx}.mp4')
         cap.set(cv2.CAP_PROP_POS_FRAMES,begFidx)
         ret = True # has frame returned
         time_ = 0
@@ -94,6 +95,7 @@ def video_show(video_path, model):
 
     while True:
         ret, frame = cap.read()
+        print("Predicting")
         if ret:
             img = frame.copy()
             img = cv2.resize(img, (512, 512))
@@ -138,7 +140,7 @@ def predict_violation(frame, model):
 
 
 
-@app.route('/play/yummy',methods=['POST'])
+@app.route('/been',methods=['POST'])
 def predict_play():
     print("start")
     data = {'path':'/test/path.txt'
@@ -151,12 +153,13 @@ def predict_play():
     )
     return response
 
-@app.route('/yummy',methods=['POST'])
+@app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
     # 본 서버용
     download_file_path = './temp/'+params['path']
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
+    print(connect_str)
     # 내부 테스트용
     #connect_str = 'DefaultEndpointsProtocol=https;AccountName=blobtestyummy;AccountKey=RKYhaSjt1AFoiVOFU6p/63bnDCIc95yD9+w46YSA1pCC/rTUbBf+pCHNlD6eBewhKbEmlFv5mfeV+AStBlsy3Q==;EndpointSuffix=core.windows.net'
     
@@ -166,12 +169,12 @@ def temp():
 
     download_container = os.getenv('STORAGE_AZURE_CONTAINER')
     upload_container = os.getenv('STORAGE_CROPPED_CONTAINER')
-    
+    print(upload_container)
+    print(download_container)
 
-    # print(2)
     blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-    # container_client = blob_service_client.get_container_client(os.getenv('STORAGE_ACCOUNT_NAME'))
     container_client = blob_service_client.get_container_client(download_container)
+    #container_client = blob_service_client.get_container_client(download_container)
     data = {'upload': 'fail'}
     try:
         with open(download_file_path, 'wb') as download_file:
@@ -179,12 +182,13 @@ def temp():
             download_file.close()
             data['upload']='succeced'
     except:
+        #print("여기 도착")
         return make_response(jsonify(data), 503)
     
-    model = load_model(model_path)
     # start = time.time()
     upload_file_path = './media/'+params['path']
     video_path = download_file_path
+    
     # # print(video_path)
     pred_lst = video_show(video_path, model)
     # # print("t"+str(pred_lst))
@@ -192,21 +196,30 @@ def temp():
     mk_file_list = []
     gps_time_list =[]
     if shorts_unique is not None:
-        mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'])
+        mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
     
     for file_path in mk_file_list:
-        blob_client = blob_service_client.get_blob_client(container=upload_container, blob=file_path)
-        with open(os.path.join('./media',file_path), 'rb') as data:
+        file_name = file_path.split('/')
+        print(file_name[-1])
+        temp = file_name[-1]
+        blob_client = blob_service_client.get_blob_client(container=upload_container,blob=temp)
+        with open(file_path, 'rb') as data:
             blob_client.upload_blob(data)
             data.close()
     
     for file_path in mk_file_list:
         os.remove(file_path)
-   
+    for i in len(mk_file_list):
+        mk_file_list[i] = "https://aizostorage.blob.core.windows.net/aizo-cropped/"+ mk_file_list[i]
+    
    ## GPS, time 시간 처리 미구현
 #    다운로드 링크 받아서 처리해줘야함
 #    with open()
     os.remove(download_file_path)
+    data = {
+        "path" : mk_file_list,
+        #"gps" : [lat,lon]
+    }
     return make_response(jsonify(data), 201)
 
 if __name__== '__main__':
