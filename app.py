@@ -17,17 +17,10 @@ app = Flask(__name__)
 
 model_path = "./weights/weights.h5"
 
-violation = {
-    0: 'NORMAL',
-    1: 'VIOLATION'
-}
-
 fps = 30
 sec = 4
 
-color_list = [(0, 255, 0), (0, 0, 255)]    # 정상: 초록, 위반: 빨강
-
-def save_shorts(video_path, shorts_unique, start_time):
+def save_shorts(video_path, shorts_unique, start_time,upload_path):
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -38,8 +31,8 @@ def save_shorts(video_path, shorts_unique, start_time):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     mk_file = []
     for idx,(begFidx,endFidx) in enumerate(segRange):
-        writer = cv2.VideoWriter(f'./temp/{bolb_name}{idx}.mp4',fourcc,fps,(w, h))
-        mk_file.append(f'./temp/{bolb_name}{idx}.mp4')
+        writer = cv2.VideoWriter(f'{upload_path}{idx}.mp4',fourcc,fps,(w, h))
+        mk_file.append(f'{upload_path}{idx}.mp4')
         cap.set(cv2.CAP_PROP_POS_FRAMES,begFidx)
         ret = True # has frame returned
         time_ = 0
@@ -76,7 +69,7 @@ def get_shorts(pred_lst):
     for idx in range(len(pred_lst) - shorts_len):
         shorts = pred_lst[idx:idx+shorts_len].tolist()
         
-        if shorts.count(1) >= 45:
+        if shorts.count(1) >= 30:
             shorts_idx.append(range(idx, idx+shorts_len*2))
     
     if len(shorts_idx):
@@ -93,10 +86,11 @@ def video_show(video_path, model):
     h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     c = 3
     
+    threshold=0.95
     pred_lst = []
     tmp = 0
     batch = np.empty((1, 512, 512, 3))
-    batch_size = 8
+    batch_size = 4
 
     while True:
         ret, frame = cap.read()
@@ -111,11 +105,10 @@ def video_show(video_path, model):
                     batch = np.concatenate((batch, img), axis=0)
                 else:
                     batch = np.concatenate((batch, img), axis=0)
-                    y_pred = model.predict(batch[1:], verbose=0)
+                    y_pred = model.predict(batch[1:], verbose=0,batch_size=batch_size)
                     batch = np.empty((1, 512, 512, 3))
-                    gc.collect()
-                #y_pred = predict_violation(frame, model)
-                    pred_lst.append(np.argmax(y_pred, axis=1))
+                    y_pred = (np.array(y_pred)[:, 1] > threshold)            
+                    pred_lst.append(y_pred)
                 tmp += 1
 
             else:
@@ -162,20 +155,24 @@ def predict_play():
 def temp():
     params = request.get_json()
     # 본 서버용
-    download_file_path = './media/'+params['path']
+    download_file_path = './temp/'+params['path']
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
     # 내부 테스트용
-    connect_str = 'DefaultEndpointsProtocol=https;AccountName=blobtestyummy;AccountKey=RKYhaSjt1AFoiVOFU6p/63bnDCIc95yD9+w46YSA1pCC/rTUbBf+pCHNlD6eBewhKbEmlFv5mfeV+AStBlsy3Q==;EndpointSuffix=core.windows.net'
+    #connect_str = 'DefaultEndpointsProtocol=https;AccountName=blobtestyummy;AccountKey=RKYhaSjt1AFoiVOFU6p/63bnDCIc95yD9+w46YSA1pCC/rTUbBf+pCHNlD6eBewhKbEmlFv5mfeV+AStBlsy3Q==;EndpointSuffix=core.windows.net'
     
     # download_file_path = './media/'+params['path']
     # date = params['date']
 
+
+    download_container = os.getenv('STORAGE_AZURE_CONTAINER')
+    upload_container = os.getenv('STORAGE_CROPPED_CONTAINER')
+    
+
     # print(2)
     blob_service_client = BlobServiceClient.from_connection_string(connect_str)
     # container_client = blob_service_client.get_container_client(os.getenv('STORAGE_ACCOUNT_NAME'))
-    container_client = blob_service_client.get_container_client('blob')
+    container_client = blob_service_client.get_container_client(download_container)
     data = {'upload': 'fail'}
-    print(1)
     try:
         with open(download_file_path, 'wb') as download_file:
             download_file.write(container_client.download_blob(params['path']).readall())
@@ -186,8 +183,7 @@ def temp():
     
     model = load_model(model_path)
     # start = time.time()
-    BLOBNAME = params['path']
-    download_file_path = './media/'+params['path']
+    upload_file_path = './media/'+params['path']
     video_path = download_file_path
     # # print(video_path)
     pred_lst = video_show(video_path, model)
@@ -199,8 +195,8 @@ def temp():
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'])
     
     for file_path in mk_file_list:
-        blob_client = blob_service_client.get_blob_client(container='blob', blob=file_path)
-        with open(os.path.join('./temp',file_path), 'rb') as data:
+        blob_client = blob_service_client.get_blob_client(container=upload_container, blob=file_path)
+        with open(os.path.join('./media',file_path), 'rb') as data:
             blob_client.upload_blob(data)
             data.close()
     
