@@ -171,7 +171,11 @@ def predict_play():
 def temp():
     params = request.get_json()
     print("params")
-    # 본 서버용
+    # data  s = params['data']
+    # times = []
+    # for i in datas:
+    #     times.append(float(i['time']))
+    # # 본 서버용
     download_file_path = './temp/'+params['path']
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
     print(connect_str)
@@ -209,9 +213,14 @@ def temp():
     shorts_unique = get_shorts(pred_lst)
     mk_file_list = []
     gps_time_list =[]
+    gps_list = []
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
     print(gps_time_list)
+    # for i in gps_time_list:
+    #     flag = 1
+    #     for j in times:
+    #         if flag
     for file_path in mk_file_list:
         file_name = file_path.split('/')
         print(file_name[-1])
@@ -223,7 +232,7 @@ def temp():
 
     for file_path in mk_file_list:
         os.remove(file_path)
-    for i in len(mk_file_list):
+    for i in range(0,len(mk_file_list)):
         mk_file_list[i] = "https://aizostorage.blob.core.windows.net/aizo-cropped/"+ mk_file_list[i]
     
 
