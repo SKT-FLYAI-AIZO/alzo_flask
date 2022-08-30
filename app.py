@@ -32,13 +32,14 @@ def save_shorts(video_path, shorts_unique, start_time,upload_path):
     segRange = [(shorts_idx[0], shorts_idx[0] + fps*sec*2) for shorts_idx in shorts_unique]
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     mk_file = []
+    time_list = []
     for idx,(begFidx,endFidx) in enumerate(segRange):
         writer = cv2.VideoWriter(f'{upload_path[:-4]}_{idx}.mp4',fourcc,fps,(w, h))
         mk_file.append(f'{upload_path[:-4]}_{idx}.mp4')
         cap.set(cv2.CAP_PROP_POS_FRAMES,begFidx)
         ret = True # has frame returned
         time_ = 0
-        time_list = []
+        
         while(cap.isOpened() and ret and writer.isOpened()):
             ret, frame = cap.read()
             frame_number = cap.get(cv2.CAP_PROP_POS_FRAMES) - 1
@@ -76,7 +77,7 @@ def get_shorts(pred_lst):
     
     if len(shorts_idx):
         shorts_unique = shorts_intersect(shorts_idx)
-        print(shorts_unique)
+        #print(shorts_unique)
         return shorts_unique
     else:
         return None
@@ -170,39 +171,30 @@ def predict_play():
 @app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
-    print("params")
-    # data  s = params['data']
-    # times = []
-    # for i in datas:
+
+    #data = params['data']
+    times = []
+    # for i in data:
     #     times.append(float(i['time']))
     # # 본 서버용
     download_file_path = './temp/'+params['path']
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
     print(connect_str)
-    # 내부 테스트용
-    #connect_str = 'DefaultEndpointsProtocol=https;AccountName=blobtestyummy;AccountKey=RKYhaSjt1AFoiVOFU6p/63bnDCIc95yD9+w46YSA1pCC/rTUbBf+pCHNlD6eBewhKbEmlFv5mfeV+AStBlsy3Q==;EndpointSuffix=core.windows.net'
-    
-    # download_file_path = './media/'+params['path']
-    # date = params['date']
     file_name = params['path']
-    print(params['path'])
     download_container = os.getenv('STORAGE_AZURE_CONTAINER')
     upload_container = os.getenv('STORAGE_CROPPED_CONTAINER')
-    print(upload_container)
-    print(download_container)
 
     blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-    container_client = blob_service_client.get_container_client(container='aizo-source')
-    #container_client = blob_service_client.get_container_client(download_container)
-    data = {'upload': 'fail'}
-    # try:
-    with open(download_file_path, "wb") as download_file:
-        download_file.write(container_client.download_blob(file_name).readall())
-        download_file.close()
-        data['upload']='succeced'
-    # except:
-        # print("여기 도착")
-        # return make_response(jsonify(data), 503)
+    container_client = blob_service_client.get_container_client(download_container)
+    result = {'upload': 'fail'}
+    try:
+        with open(download_file_path, "wb") as download_file:
+            download_file.write(container_client.download_blob(file_name).readall())
+            download_file.close()
+            result['upload']='succeced'
+    except:
+        print("여기 도착")
+        return make_response(jsonify(data), 503)
     
     # start = time.time()
     upload_file_path = './media/'+params['path']
@@ -213,14 +205,19 @@ def temp():
     shorts_unique = get_shorts(pred_lst)
     mk_file_list = []
     gps_time_list =[]
+    result_time = []
     gps_list = []
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
+    print(f"gps_time_list:{gps_time_list}")
+    for j in gps_time_list:
+        result_time.append(str(np.datetime64(params['time'])+np.timedelta64(int(1000*j))))
+    print("____________")
+    print(result_time)
     print(gps_time_list)
     # for i in gps_time_list:
-    #     flag = 1
-    #     for j in times:
-    #         if flag
+    #     gps_list.append(binary_search(times,i))
+
     for file_path in mk_file_list:
         file_name = file_path.split('/')
         print(file_name[-1])
@@ -233,18 +230,19 @@ def temp():
     for file_path in mk_file_list:
         os.remove(file_path)
     for i in range(0,len(mk_file_list)):
-        mk_file_list[i] = "https://aizostorage.blob.core.windows.net/aizo-cropped/"+ mk_file_list[i]
-    
+        mk_file_list[i] = "https://aizostorage.blob.core.windows.net/aizo-cropped/"+ mk_file_list[i].split('/')[-1]
+        gps_list.append({"lat":"37.5664","lon":"126.9851"})
 
    ## GPS, time 시간 처리 미구현
 #    다운로드 링크 받아서 처리해줘야함
 #    with open()
     os.remove(download_file_path)
-    data = {
-        "path" : mk_file_list,
-        #"gps" : [lat,lon]
+    result = {
+        "path" : mk_file_list
+        ,"gps" : gps_list
+        ,'date' : result_time
     }
-    return make_response(jsonify(data), 201)
+    return make_response(jsonify(result), 201)
 
 if __name__== '__main__':
     app.run(debug = True, port=8080)
