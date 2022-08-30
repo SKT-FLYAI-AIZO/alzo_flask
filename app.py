@@ -1,3 +1,4 @@
+from ast import Global
 from flask import request,Flask, Response, json, jsonify, make_response
 import cv2
 import os
@@ -48,7 +49,7 @@ def save_shorts(video_path, shorts_unique, start_time,upload_path):
                 writer.write(frame)
             else:
                 break
-        time_list.append(time_)
+        time_list.append(cap.get(cv2.CAP_PROP_POS_FRAMES)/fps)
         writer.release()
     return mk_file,time_list
 
@@ -138,12 +139,23 @@ def predict_violation(frame, model):
     
     return np.argmax(y_pred)      # 0: normal, 1: violation
 
+def binary_search(arr,target,low=None,high=None):
+    low, high = low or 0, high or len(arr) - 1
+    if low > high:
+        return low
 
+    mid = (low + high) // 2
+    if arr[mid] > target:
+        return binary_search(arr, target, low, mid)
+    if arr[mid] == target:
+        return mid
+    if arr[mid] < target:
+        return binary_search(arr, target, mid + 1, high)
 
 @app.route('/been',methods=['POST'])
 def predict_play():
     print("start")
-    data = {'path':'/test/path.txt'
+    data = {'path':'https://aizostorage.blob.core.windows.net/aizo-cropped/kakaotalk'
             ,'lat':'80.12'
             ,'lon':'190.1'
             ,'time':'2022-02-12 20:20:20'}
@@ -153,9 +165,12 @@ def predict_play():
     )
     return response
 
+
+
 @app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
+    print("params")
     # 본 서버용
     download_file_path = './temp/'+params['path']
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
@@ -191,13 +206,12 @@ def temp():
     
     # # print(video_path)
     pred_lst = video_show(video_path, model)
-    # # print("t"+str(pred_lst))
     shorts_unique = get_shorts(pred_lst)
     mk_file_list = []
     gps_time_list =[]
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
-    
+    print(gps_time_list)
     for file_path in mk_file_list:
         file_name = file_path.split('/')
         print(file_name[-1])
@@ -206,12 +220,13 @@ def temp():
         with open(file_path, 'rb') as data:
             blob_client.upload_blob(data)
             data.close()
-    
+
     for file_path in mk_file_list:
         os.remove(file_path)
     for i in len(mk_file_list):
         mk_file_list[i] = "https://aizostorage.blob.core.windows.net/aizo-cropped/"+ mk_file_list[i]
     
+
    ## GPS, time 시간 처리 미구현
 #    다운로드 링크 받아서 처리해줘야함
 #    with open()
