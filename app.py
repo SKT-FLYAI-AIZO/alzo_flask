@@ -104,21 +104,9 @@ def video_show(video_path, model):
             img = img.astype(np.float32)
             img /= 255.
             img = np.expand_dims(img, axis=0)
-            if tmp:
-                if (tmp % batch_size) != 0:
-                    batch = np.concatenate((batch, img), axis=0)
-                else:
-                    batch = np.concatenate((batch, img), axis=0)
-                    y_pred = model.predict(batch[1:], verbose=0,batch_size=batch_size)
-                    batch = np.empty((1, 512, 512, 3))
-                    y_pred = (np.array(y_pred)[:, 1] > threshold)            
-                    pred_lst.append(y_pred)
-                tmp += 1
-
-            else:
-                tmp += 1
-                continue
-            
+            y_pred = model.predict(img, verbose=0)
+            y_pred = (np.array(y_pred)[:, 1] > threshold)            
+            pred_lst.append(y_pred)
         else:
             break
 
@@ -171,7 +159,7 @@ def predict_play():
 @app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
-    temp = params["gps"]
+    gps = params['gps']
     #data = params['data']
     #times = []
     # for i in data:
@@ -240,7 +228,7 @@ def temp():
     result = {
         "path" : mk_file_list
         ,"gps" : gps_list
-        ,'date' : result_time
+        ,"date" : result_time
     }
     return make_response(jsonify(result), 201)
 
