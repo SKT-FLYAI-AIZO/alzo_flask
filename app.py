@@ -160,6 +160,7 @@ def predict_play():
 def temp():
     params = request.get_json()
     print(params)
+    return make_response(jsonify(params), 444)
     #gps = params['gps']
     #data = params['data']
     #times = []
