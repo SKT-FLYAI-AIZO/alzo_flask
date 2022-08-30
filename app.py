@@ -171,9 +171,9 @@ def predict_play():
 @app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
-
+    temp = params["gps"]
     #data = params['data']
-    times = []
+    #times = []
     # for i in data:
     #     times.append(float(i['time']))
     # # 본 서버용
