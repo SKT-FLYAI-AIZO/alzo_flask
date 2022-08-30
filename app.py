@@ -159,6 +159,7 @@ def predict_play():
 @app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
+    print(params)
     #gps = params['gps']
     #data = params['data']
     #times = []
@@ -181,8 +182,8 @@ def temp():
             download_file.close()
             result['upload']='succeced'
     except:
-        print("여기 도착")
-        return make_response(jsonify(data), 503)
+        print("다운로드 실패!")
+        return make_response(jsonify(result), 503)
     
     # start = time.time()
     upload_file_path = './media/'+params['path']
