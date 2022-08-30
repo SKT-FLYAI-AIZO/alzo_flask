@@ -159,7 +159,7 @@ def predict_play():
 @app.route('/play',methods=['POST'])
 def temp():
     params = request.get_json()
-    gps = params['gps']
+    #gps = params['gps']
     #data = params['data']
     #times = []
     # for i in data:
