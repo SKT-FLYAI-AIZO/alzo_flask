@@ -180,25 +180,25 @@ def temp():
     
     # download_file_path = './media/'+params['path']
     # date = params['date']
-
-
+    file_name = params['path']
+    print(params['path'])
     download_container = os.getenv('STORAGE_AZURE_CONTAINER')
     upload_container = os.getenv('STORAGE_CROPPED_CONTAINER')
     print(upload_container)
     print(download_container)
 
     blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-    container_client = blob_service_client.get_container_client(download_container)
+    container_client = blob_service_client.get_container_client(container='aizo-source')
     #container_client = blob_service_client.get_container_client(download_container)
     data = {'upload': 'fail'}
-    try:
-        with open(download_file_path, 'wb') as download_file:
-            download_file.write(container_client.download_blob(params['path']).readall())
-            download_file.close()
-            data['upload']='succeced'
-    except:
-        #print("여기 도착")
-        return make_response(jsonify(data), 503)
+    # try:
+    with open(download_file_path, "wb") as download_file:
+        download_file.write(container_client.download_blob(file_name).readall())
+        download_file.close()
+        data['upload']='succeced'
+    # except:
+        # print("여기 도착")
+        # return make_response(jsonify(data), 503)
     
     # start = time.time()
     upload_file_path = './media/'+params['path']
