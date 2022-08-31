@@ -97,7 +97,7 @@ def video_show(video_path, model):
 
     while True:
         ret, frame = cap.read()
-        print("Predicting")
+        #print("Predicting")
         if ret:
             img = frame.copy()
             img = cv2.resize(img, (512, 512))
@@ -164,9 +164,9 @@ def temp():
     params = json.loads(params)
     # params = request.get_json('')
     # params = json.loads()
-    print(params,flush=True)   
-    print(type(params))
-    print(params['path'])
+    #print(params,flush=True)   
+    #print(type(params))
+    #print(params['path'])
     #gps = params['gps']
     #data = params['data']
     #times = []
@@ -176,7 +176,7 @@ def temp():
 
     download_file_path = './temp/'+str(params["path"])
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
-    print(connect_str)
+    #print(connect_str)
     file_name = params['path']
     download_container = os.getenv('STORAGE_AZURE_CONTAINER')
     upload_container = os.getenv('STORAGE_CROPPED_CONTAINER')
@@ -197,7 +197,7 @@ def temp():
     upload_file_path = './media/'+params['path']
     video_path = download_file_path
     
-    # # print(video_path)
+    print("start",flush=True)
     pred_lst, fps = video_show(video_path, model)
     shorts_unique = get_shorts(pred_lst,fps)
     mk_file_list = []
@@ -206,18 +206,14 @@ def temp():
     gps_list = []
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
-    print(f"gps_time_list:{gps_time_list}")
     for j in gps_time_list:
         result_time.append(str(np.datetime64(params['time'])+np.timedelta64(int(1000*j))))
-    print("____________")
-    print(result_time)
-    print(gps_time_list)
     # for i in gps_time_list:
     #     gps_list.append(binary_search(times,i))
 
     for file_path in mk_file_list:
         file_name = file_path.split('/')
-        print(file_name[-1])
+        #print(file_name[-1])
         temp = file_name[-1]
         blob_client = blob_service_client.get_blob_client(container=upload_container,blob=temp)
         with open(file_path, 'rb') as data:
