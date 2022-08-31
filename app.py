@@ -30,7 +30,7 @@ def save_shorts(video_path, shorts_unique, start_time,upload_path):
     c = 3    
 
     segRange = [(shorts_idx[0], shorts_idx[0] + fps*sec*2) for shorts_idx in shorts_unique]
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     mk_file = []
     time_list = []
     for idx,(begFidx,endFidx) in enumerate(segRange):
