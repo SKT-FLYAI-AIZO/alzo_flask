@@ -210,10 +210,11 @@ def temp():
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
     else:
         result =  {
-        "path" : mk_file_list
-        ,"gps" : gps_list
-        ,"date" : result_time
-    }
+        "path" : " "
+        ,"gps" : " "
+        ,"date" : " "
+        }
+        print(result)
         return make_response(jsonify(result), 204)
     print(mk_file_list)
     print("upload_end",flush=True)
