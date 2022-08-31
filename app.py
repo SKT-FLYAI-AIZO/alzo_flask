@@ -209,11 +209,11 @@ def temp():
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
     else:
-        result = {
-        "path" : ['']
-        ,"gps" : ['']
-        ,"date" : ['']
-        }
+        result =  {
+        "path" : mk_file_list
+        ,"gps" : gps_list
+        ,"date" : result_time
+    }
         return make_response(jsonify(result), 204)
     print(mk_file_list)
     print("upload_end",flush=True)
