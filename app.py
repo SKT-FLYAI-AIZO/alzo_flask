@@ -65,14 +65,14 @@ def shorts_intersect(shorts_idx):
 
     return shorts_unique
 
-def get_shorts(pred_lst):
+def get_shorts(pred_lst,fps):
 
     shorts_len = fps * sec
     shorts_idx = []
     for idx in range(len(pred_lst) - shorts_len):
         shorts = pred_lst[idx:idx+shorts_len].tolist()
         
-        if shorts.count(1) >= 30:
+        if shorts.count(1) >= 40:
             shorts_idx.append(range(idx, idx+shorts_len*2))
     
     if len(shorts_idx):
@@ -115,7 +115,7 @@ def video_show(video_path, model):
         #cv2.waitKey(1)
     pred_lst = np.reshape(pred_lst, (-1, ))
 
-    return pred_lst
+    return pred_lst,fps
 
 def predict_violation(frame, model):
     img = frame.copy()
@@ -198,8 +198,8 @@ def temp():
     video_path = download_file_path
     
     # # print(video_path)
-    pred_lst = video_show(video_path, model)
-    shorts_unique = get_shorts(pred_lst)
+    pred_lst, fps = video_show(video_path, model)
+    shorts_unique = get_shorts(pred_lst,fps)
     mk_file_list = []
     gps_time_list =[]
     result_time = []
