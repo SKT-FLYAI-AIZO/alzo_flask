@@ -1,5 +1,5 @@
 from ast import Global
-from flask import Request,Flask, Response, json, jsonify, make_response
+from flask import request,Flask, Response, json, jsonify, make_response
 import cv2
 import os
 import time
@@ -158,7 +158,7 @@ def predict_play():
 
 @app.route('/play',methods=['POST'])
 def temp():
-    params = Request.get_json()
+    params = request.get_json()
     # params = request.get_json('')
     # params = json.loads()
     print(params)   
