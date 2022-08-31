@@ -115,7 +115,7 @@ def video_show(video_path, model):
         #cv2.waitKey(1)
     pred_lst = np.reshape(pred_lst, (-1, ))
 
-    return pred_lst,fps
+    return pred_lst,int(fps)
 
 def predict_violation(frame, model):
     img = frame.copy()
