@@ -158,6 +158,8 @@ def predict_play():
 
 @app.route('/play',methods=['POST'])
 def temp():
+    temp = request.args.getlist()
+    print(temp)
     params = request.get_json()
     # params = request.get_json('')
     # params = json.loads()
