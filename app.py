@@ -1,5 +1,5 @@
 from ast import Global
-from flask import request,Flask, Response, json, jsonify, make_response
+from flask import Request,Flask, Response, json, jsonify, make_response
 import cv2
 import os
 import time
@@ -158,14 +158,18 @@ def predict_play():
 
 @app.route('/play',methods=['POST'])
 def temp():
-    params = request.get_json()
-    print(params)
+    params = Request.get_json()
+    # params = request.get_json('')
+    # params = json.loads()
+    print(params)   
+
     #gps = params['gps']
     #data = params['data']
     #times = []
     # for i in data:
     #     times.append(float(i['time']))
     # # 본 서버용
+
     download_file_path = './temp/'+params['path']
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
     print(connect_str)
