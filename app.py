@@ -161,10 +161,12 @@ def temp():
     temp = request.args.get("path")
     print(temp)
     params = request.get_json()
+    params = json.loads(params)
     # params = request.get_json('')
     # params = json.loads()
     print(params,flush=True)   
-
+    print(type(params))
+    print(params['path'])
     #gps = params['gps']
     #data = params['data']
     #times = []
@@ -172,7 +174,7 @@ def temp():
     #     times.append(float(i['time']))
     # # 본 서버용
 
-    download_file_path = './temp/'+params['path']
+    download_file_path = './temp/'+str(params["path"])
     connect_str = os.getenv("STORAGE_CONNECTION_STRING")    
     print(connect_str)
     file_name = params['path']
