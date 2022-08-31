@@ -200,12 +200,15 @@ def temp():
     print("start",flush=True)
     pred_lst, fps = video_show(video_path, model)
     shorts_unique = get_shorts(pred_lst,fps)
+    print("detected succ",flush=True)
     mk_file_list = []
     gps_time_list =[]
     result_time = []
     gps_list = []
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
+ 
+    print("upload_end",flush=True)
     for j in gps_time_list:
         result_time.append(str(np.datetime64(params['time'])+np.timedelta64(int(1000*j))))
     # for i in gps_time_list:
