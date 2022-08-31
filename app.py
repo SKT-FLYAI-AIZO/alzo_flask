@@ -207,7 +207,7 @@ def temp():
     gps_list = []
     if shorts_unique is not None:
         mk_file_list, gps_time_list = save_shorts(video_path, shorts_unique,params['time'],upload_file_path)
- 
+    print(mk_file_list)
     print("upload_end",flush=True)
     for j in gps_time_list:
         result_time.append(str(np.datetime64(params['time'])+np.timedelta64(int(1000*j))))
