@@ -143,7 +143,7 @@ def binary_search(arr,target,low=None,high=None):
 
 @app.route('/been',methods=['POST'])
 def predict_play():
-    print("start")
+    print("start",flush=True)
     data = {'path':'https://aizostorage.blob.core.windows.net/aizo-cropped/kakaotalk'
             ,'lat':'80.12'
             ,'lon':'190.1'
@@ -158,12 +158,12 @@ def predict_play():
 
 @app.route('/play',methods=['POST'])
 def temp():
-    temp = request.args.getlist('data')
+    temp = request.args.get("path")
     print(temp)
     params = request.get_json()
     # params = request.get_json('')
     # params = json.loads()
-    print(params)   
+    print(params,flush=True)   
 
     #gps = params['gps']
     #data = params['data']
