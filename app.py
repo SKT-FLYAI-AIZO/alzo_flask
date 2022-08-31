@@ -73,7 +73,7 @@ def get_shorts(pred_lst,fps):
     for idx in range(len(pred_lst) - shorts_len):
         shorts = pred_lst[idx:idx+shorts_len].tolist()
         
-        if shorts.count(1) >= 40:
+        if shorts.count(1) >= 30:
             shorts_idx.append(range(idx, idx+shorts_len*2))
     
     if len(shorts_idx):
@@ -214,8 +214,8 @@ def temp():
         ,"gps" : [" "]
         ,"date" : [" "]
         }
-        print(result)
-        return make_response(jsonify(result), 204)
+        result_dump = json.dumps(result)
+        return make_response(result_dump, 204)
     print(mk_file_list)
     print("upload_end",flush=True)
     for j in gps_time_list:
